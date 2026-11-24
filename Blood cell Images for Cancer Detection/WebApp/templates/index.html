@@ -1,0 +1,449 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>CellVision | Blood Cell Classification</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+
+    <script
+        src="{{ url_for('static', filename='js/app.js') }}"
+        defer
+    ></script>
+</head>
+
+<body>
+    <div class="app-shell">
+
+        <aside class="sidebar" id="app-sidebar">
+
+            <div class="brand">
+                <div class="brand-icon">CV</div>
+
+                <div class="brand-text">
+                    <h2>CellVision</h2>
+                    <p>Blood Cell Analysis</p>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav" aria-label="Main navigation">
+                <p class="sidebar-label">MAIN MENU</p>
+
+                <a href="#dashboard" class="nav-link active">
+                    <span class="nav-icon" aria-hidden="true">⌂</span>
+                    <span>Dashboard</span>
+                </a>
+
+                <a href="#upload-section" class="nav-link">
+                    <span class="nav-icon" aria-hidden="true">↑</span>
+                    <span>Upload Image</span>
+                </a>
+
+                <a href="#prediction-results" class="nav-link">
+                    <span class="nav-icon" aria-hidden="true">▦</span>
+                    <span>Predictions</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-bottom">
+                <div class="sidebar-status">
+                    <span class="status-dot" aria-hidden="true"></span>
+
+                    <div>
+                        <strong>
+                            {% if model_ready %}
+                                System Ready
+                            {% else %}
+                                System Unavailable
+                            {% endif %}
+                        </strong>
+                        <small>Image Classification</small>
+                    </div>
+                </div>
+            </div>
+
+        </aside>
+
+        <header class="topbar">
+
+            <div class="topbar-left">
+                <div class="topbar-heading">
+                    <span class="topbar-title">Dashboard</span>
+                    <span class="topbar-subtitle">
+                        Blood Cell Classification Workspace
+                    </span>
+                </div>
+            </div>
+
+            <div class="topbar-right">
+                <span class="workspace-label">CELLVISION</span>
+
+                <div class="model-status">
+                    <span class="status-dot" aria-hidden="true"></span>
+
+                    <span>
+                        {% if model_ready %}
+                            Ready to Analyze
+                        {% else %}
+                            Currently Unavailable
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+
+        </header>
+
+        <main class="main-content" id="dashboard">
+
+            <section class="hero-section">
+
+                <div class="hero-content">
+
+                    <p class="hero-eyebrow">
+                        BLOOD CELL IMAGE ANALYSIS
+                    </p>
+
+                    <h1>
+                        Intelligent
+                        <span>Blood Cell Classification</span>
+                    </h1>
+
+                    <p class="hero-description">
+                        Upload a microscopic blood cell image and let
+                        CellVision predict its category. View your
+                        uploaded image and classification result in
+                        one convenient dashboard.
+                    </p>
+
+                    <div class="hero-tags">
+                        <span>Simple Image Upload</span>
+                        <span>Quick Prediction</span>
+                        <span>Five Cell Categories</span>
+                    </div>
+
+                </div>
+
+                <div class="hero-visual" aria-hidden="true">
+                    <div class="hero-visual-circle">
+                        <div class="hero-visual-inner">
+                            <span>+</span>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+            <div
+                class="alert alert-error"
+                id="error-message"
+                role="alert"
+                hidden
+            ></div>
+
+            {% if error %}
+                <div class="alert alert-error" role="alert">
+                    <strong>Unable to Analyze Image</strong>
+                    <p>{{ error }}</p>
+                </div>
+            {% endif %}
+
+            {% if model_error %}
+                <div class="alert alert-warning" role="alert">
+                    <strong>Service Notice</strong>
+                    <p>{{ model_error }}</p>
+                </div>
+            {% endif %}
+
+            <section class="dashboard-grid">
+
+                <article class="panel upload-panel" id="upload-section">
+
+                    <div class="panel-header">
+                        <div>
+                            <p class="panel-eyebrow">IMAGE INPUT</p>
+                            <h2>Upload Blood Cell Image</h2>
+                            <p class="panel-description">
+                                Select a microscopic image to classify.
+                            </p>
+                        </div>
+
+                        <div class="panel-icon" aria-hidden="true">
+                            ↑
+                        </div>
+                    </div>
+
+                    <form
+                        id="upload-form"
+                        action="{{ url_for('predict') }}"
+                        method="POST"
+                        enctype="multipart/form-data"
+                        data-model-ready="{{ 'true' if model_ready else 'false' }}"
+                    >
+
+                        <div
+                            class="drop-zone"
+                            id="drop-zone"
+                            role="button"
+                            tabindex="0"
+                            aria-label="Choose or drop a blood cell image"
+                        >
+
+                            <div class="empty-state" id="empty-state">
+
+                                <div class="upload-icon" aria-hidden="true">
+                                    <span>↑</span>
+                                </div>
+
+                                <h3>Drop your image here</h3>
+
+                                <p>
+                                    Drag and drop an image, or browse
+                                    your device to select a file.
+                                </p>
+
+                                <button
+                                    type="button"
+                                    class="browse-button"
+                                    id="browse-button"
+                                >
+                                    Browse Files
+                                </button>
+
+                                <p class="upload-formats">
+                                    Supported formats: JPG, JPEG, PNG
+                                </p>
+
+                            </div>
+
+                            <div
+                                class="preview-state"
+                                id="preview-state"
+                                hidden
+                            >
+
+                                <img
+                                    id="image-preview"
+                                    src=""
+                                    alt="Selected blood cell image"
+                                >
+
+                                <div class="preview-details">
+                                    <p class="preview-label">
+                                        SELECTED IMAGE
+                                    </p>
+
+                                    <p
+                                        class="file-name"
+                                        id="file-name"
+                                    >
+                                        No image selected
+                                    </p>
+
+                                    <button
+                                        type="button"
+                                        class="remove-image"
+                                        id="remove-image"
+                                    >
+                                        Remove Image
+                                    </button>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <input
+                            type="file"
+                            id="image-input"
+                            name="file"
+                            accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                            hidden
+                        >
+
+                        <button
+                            type="submit"
+                            class="analyze-button"
+                            id="analyze-button"
+                            {% if not model_ready %}disabled{% endif %}
+                        >
+                            <span id="button-label">
+                                Predict Cell Type
+                            </span>
+
+                            <span
+                                class="button-spinner"
+                                id="button-spinner"
+                                hidden
+                                aria-hidden="true"
+                            ></span>
+
+                            <span
+                                class="button-arrow"
+                                id="button-arrow"
+                                aria-hidden="true"
+                            >
+                                →
+                            </span>
+                        </button>
+
+                        <p class="upload-note">
+                            For research and educational use.
+                            This tool does not replace medical advice.
+                        </p>
+
+                    </form>
+
+                </article>
+
+                <section
+                    class="panel prediction-panel"
+                    id="prediction-results"
+                    aria-live="polite"
+                    hidden
+                >
+
+                    <div class="panel-header">
+                        <div>
+                            <p class="panel-eyebrow">IMAGE OUTPUT</p>
+                            <h2>Prediction Result</h2>
+                            <p class="panel-description">
+                                The predicted blood cell category appears here.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="results-grid">
+
+                        <div class="result-image-card">
+                            <h3>Analyzed Image</h3>
+
+                            <div class="result-image-wrapper">
+                                <img
+                                    id="result-image"
+                                    src=""
+                                    alt="Analyzed blood cell image"
+                                >
+                            </div>
+
+                            <p
+                                class="result-filename"
+                                id="result-filename"
+                            ></p>
+                        </div>
+
+                        <div class="result-details">
+                            <div class="prediction-summary">
+                                <p class="result-label">
+                                    PREDICTED CELL CATEGORY
+                                </p>
+
+                                <h3 id="predicted-class">—</h3>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="results-actions">
+                        <button
+                            type="button"
+                            class="analyze-button secondary-button"
+                            id="analyze-another"
+                        >
+                            Analyze Another Image
+                            <span aria-hidden="true">↻</span>
+                        </button>
+                    </div>
+
+                </section>
+
+                <aside class="panel info-panel" id="guidance-panel">
+
+                    <div class="panel-header">
+                        <div>
+                            <p class="panel-eyebrow">HOW IT WORKS</p>
+                            <h2>Three Simple Steps</h2>
+                            <p class="panel-description">
+                                Classify a blood cell image in three steps.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="steps-list">
+
+                        <div class="step-item">
+                            <div class="step-number">01</div>
+                            <div>
+                                <h3>Select an Image</h3>
+                                <p>
+                                    Choose a blood cell image from your device.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="step-item">
+                            <div class="step-number">02</div>
+                            <div>
+                                <h3>Run Prediction</h3>
+                                <p>
+                                    Select Predict Cell Type to classify
+                                    the uploaded image.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="step-item">
+                            <div class="step-number">03</div>
+                            <div>
+                                <h3>View the Result</h3>
+                                <p>
+                                    View the predicted blood cell category
+                                    in the output panel.
+                                </p>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="info-disclaimer">
+                        <span aria-hidden="true">ⓘ</span>
+                        <p>
+                            Predictions are for educational and research
+                            purposes only and should not be used as a
+                            medical diagnosis.
+                        </p>
+                    </div>
+
+                </aside>
+
+            </section>
+
+            <footer class="app-footer">
+                <div class="footer-brand">
+                    <strong>CellVision</strong>
+                    <span>Blood Cell Classification</span>
+                </div>
+
+                <p>
+                    An image-based blood cell classification application.
+                </p>
+            </footer>
+
+        </main>
+
+    </div>
+
+    <noscript>
+        <div class="noscript-message">
+            JavaScript is required to use the image upload
+            and preview features.
+        </div>
+    </noscript>
+
+</body>
+</html>
